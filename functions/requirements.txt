@@ -1,0 +1,10 @@
+functions-framework==3.*
+google-cloud-firestore==2.*
+google-api-python-client==2.*
+google-auth-oauthlib==1.*
+google-auth==2.*
+requests==2.*
+python-dotenv==1.*
+flask==3.*
+cryptography==42.*
+beautifulsoup4==4.*
