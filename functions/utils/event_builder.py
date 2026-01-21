@@ -6,6 +6,11 @@ import hashlib
 from datetime import datetime, timedelta
 from typing import Optional
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
+
 
 def build_calendar_event(match: dict, followed_player_name: Optional[str] = None) -> dict:
     """
@@ -74,11 +79,12 @@ def build_calendar_event(match: dict, followed_player_name: Optional[str] = None
 
     description = "\n".join(description_parts)
 
-    # Parse datetime
+    # Parse datetime with timezone support
     event_date = match.get("event_date", "")
     event_time = match.get("event_time", "")
+    event_timezone = match.get("event_timezone", "UTC")
 
-    start_time = parse_event_datetime(event_date, event_time)
+    start_time = parse_event_datetime(event_date, event_time, event_timezone)
 
     # Tennis matches typically last 2-3 hours, use 3 as estimate
     end_time = start_time + timedelta(hours=3)
@@ -92,27 +98,37 @@ def build_calendar_event(match: dict, followed_player_name: Optional[str] = None
         "start_time": start_time.isoformat(),
         "end_time": end_time.isoformat(),
         "location": location,
-        "timezone": "UTC",
+        "timezone": event_timezone,
     }
 
 
-def parse_event_datetime(date_str: str, time_str: str = "") -> datetime:
+def parse_event_datetime(date_str: str, time_str: str = "", timezone_str: str = "UTC") -> datetime:
     """
-    Parse date and time strings from the API into a datetime object.
+    Parse date and time strings from the API into a timezone-aware datetime object.
 
     Handles various formats the API might return.
 
     Args:
         date_str: Date string (e.g., "2026-01-20" or "2026-01-20 14:00:00")
-        time_str: Optional separate time string
+        time_str: Optional separate time string (e.g., "11:00")
+        timezone_str: IANA timezone string (e.g., "Australia/Melbourne")
 
     Returns:
-        datetime object in UTC
+        timezone-aware datetime object
     """
+    # Get the timezone
+    try:
+        tz = ZoneInfo(timezone_str)
+    except (KeyError, ValueError):
+        tz = ZoneInfo("UTC")
+
     # If date_str already contains time
     if " " in date_str and not time_str:
         try:
-            return datetime.fromisoformat(date_str.replace("Z", "+00:00").replace("+00:00", ""))
+            dt = datetime.fromisoformat(date_str.replace("Z", "+00:00").replace("+00:00", ""))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=tz)
+            return dt
         except ValueError:
             pass
 
@@ -121,7 +137,7 @@ def parse_event_datetime(date_str: str, time_str: str = "") -> datetime:
         date = datetime.strptime(date_str[:10], "%Y-%m-%d")
     except ValueError:
         # Fallback to now + 1 day if parsing fails
-        return datetime.utcnow() + timedelta(days=1)
+        return datetime.now(tz) + timedelta(days=1)
 
     # Add time if provided
     if time_str:
@@ -133,6 +149,9 @@ def parse_event_datetime(date_str: str, time_str: str = "") -> datetime:
             )
         except (ValueError, IndexError):
             pass
+
+    # Make timezone-aware
+    date = date.replace(tzinfo=tz)
 
     return date
 

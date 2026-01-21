@@ -11,6 +11,7 @@ from typing import Optional
 import requests
 
 from config.settings import get_settings
+from config.tournaments import get_tournament_config, get_default_match_time
 
 
 class SerpAPIError(Exception):
@@ -207,6 +208,14 @@ class SerpAPIService:
         date_str = game.get("date", "")
         event_date, event_time, timestamp = self._parse_datetime(date_str, "")
 
+        # If no specific time, use tournament default session time
+        tournament_config = get_tournament_config(tournament_name)
+        timezone = tournament_config.get("timezone", "UTC")
+
+        if not event_time:
+            default_time, _ = get_default_match_time(tournament_name)
+            event_time = default_time
+
         # Stage/round
         stage = game.get("stage", "")
 
@@ -224,6 +233,7 @@ class SerpAPIService:
             "event_round": stage,
             "event_date": event_date,
             "event_time": event_time,
+            "event_timezone": timezone,
             "start_timestamp": timestamp,
             "event_status": "scheduled",
             "event_surface": "",
@@ -258,6 +268,14 @@ class SerpAPIService:
         league = spotlight.get("league", "") or spotlight.get("tournament", "")
         venue = spotlight.get("venue", "") or spotlight.get("stadium", "")
 
+        # Get tournament timezone and default time if needed
+        tournament_config = get_tournament_config(league)
+        timezone = tournament_config.get("timezone", "UTC")
+
+        if not event_time:
+            default_time, _ = get_default_match_time(league)
+            event_time = default_time
+
         return {
             "event_key": f"serp-{home_name.lower().replace(' ', '-')}-{away_name.lower().replace(' ', '-')}",
             "event_home_player": home_name,
@@ -268,6 +286,7 @@ class SerpAPIService:
             "event_round": "",
             "event_date": event_date,
             "event_time": event_time,
+            "event_timezone": timezone,
             "start_timestamp": timestamp,
             "event_status": event_status,
             "event_surface": "",
@@ -306,6 +325,14 @@ class SerpAPIService:
         tournament = game.get("tournament", "") or game.get("league", "") or game.get("competition", "")
         venue = game.get("venue", "") or game.get("stadium", "")
 
+        # Get tournament timezone and default time if needed
+        tournament_config = get_tournament_config(tournament)
+        timezone = tournament_config.get("timezone", "UTC")
+
+        if not event_time:
+            default_time, _ = get_default_match_time(tournament)
+            event_time = default_time
+
         return {
             "event_key": f"serp-{home_name.lower().replace(' ', '-')}-{away_name.lower().replace(' ', '-')}-{event_date}",
             "event_home_player": home_name,
@@ -316,6 +343,7 @@ class SerpAPIService:
             "event_round": game.get("round", ""),
             "event_date": event_date,
             "event_time": event_time,
+            "event_timezone": timezone,
             "start_timestamp": timestamp,
             "event_status": event_status,
             "event_surface": "",
