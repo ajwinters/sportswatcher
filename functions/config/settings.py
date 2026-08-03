@@ -23,6 +23,9 @@ class Settings:
     # SerpAPI for Google Sports data
     serpapi_key: str = ""
 
+    # Live Tennis API (optional additional match source; leave empty to disable)
+    livetennis_api_key: str = ""
+
     # Google OAuth
     google_client_id: str = ""
     google_client_secret: str = ""
@@ -55,6 +58,7 @@ def load_settings() -> Settings:
         tennis_api_requests_per_minute=int(os.environ.get("TENNIS_API_RPM", "10")),
         tennis_api_requests_per_day=int(os.environ.get("TENNIS_API_RPD", "100")),
         serpapi_key=os.environ.get("SERPAPI_KEY", ""),
+        livetennis_api_key=os.environ.get("LIVETENNIS_API_KEY", ""),
         google_client_id=os.environ.get("GOOGLE_CLIENT_ID", ""),
         google_client_secret=os.environ.get("GOOGLE_CLIENT_SECRET", ""),
         oauth_redirect_uri=os.environ.get("OAUTH_REDIRECT_URI", ""),

@@ -252,6 +252,8 @@ class TennisAPIClient:
         1. Live matches from TennisApi1
         2. Scheduled matches from SerpAPI (Google Sports)
         3. Scheduled matches from tour scraper (daily schedule + draws) as fallback
+        4. Scheduled/live matches from the Live Tennis API (only when
+           LIVETENNIS_API_KEY is set; skipped entirely otherwise)
 
         Args:
             player_ids: List of TennisApi1 player IDs to check for live matches
@@ -326,6 +328,40 @@ class TennisAPIClient:
                         seen_match_keys.add(event_key)
             except Exception:
                 pass  # Continue even if scraping fails
+
+        # Optional: scheduled/live matches from the Live Tennis API.
+        # No key configured means this block does nothing at all.
+        if player_names:
+            try:
+                from services.livetennis_service import (
+                    get_livetennis_service,
+                    match_signature,
+                )
+                livetennis = get_livetennis_service()
+
+                if livetennis.is_configured:
+                    # Providers use separate ID spaces, so also compare on
+                    # date + player pair to avoid a second calendar event for
+                    # a match an earlier source already reported.
+                    seen_signatures = {match_signature(m) for m in matches}
+
+                    for match in livetennis.get_matches_for_player_names(player_names):
+                        event_key = match.get("event_key", "")
+                        signature = match_signature(match)
+
+                        if event_key in seen_match_keys or signature in seen_signatures:
+                            continue
+
+                        # followed_player_ids carries names here, as it does
+                        # for SerpAPI results.
+                        match["followed_player_ids"] = match.pop(
+                            "followed_player_names", []
+                        )
+                        matches.append(match)
+                        seen_match_keys.add(event_key)
+                        seen_signatures.add(signature)
+            except Exception:
+                pass  # Continue even if the Live Tennis API fails
 
         return matches
 
