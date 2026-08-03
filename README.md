@@ -45,6 +45,7 @@ Track your favorite tennis players and automatically sync their upcoming matches
 2. **Tennis API Key** from [RapidAPI](https://rapidapi.com/api-sports/api/api-tennis) - for live matches and rankings
 3. **SerpAPI Key** from [SerpAPI](https://serpapi.com/) - for scheduled match data (free tier: 100 searches/month)
 4. **Google OAuth Credentials** for Calendar API
+5. *(Optional)* **Live Tennis API Key** from [livetennisapi.com](https://livetennisapi.com) - an additional source of scheduled/live matches
 
 ## Setup
 
@@ -110,12 +111,22 @@ gcloud firestore databases create --region=us-central1
 2. Get your API key from the dashboard (free tier: 100 searches/month)
 3. Copy your API key
 
+**Live Tennis API** (optional, for additional scheduled/live matches):
+1. Sign up at [livetennisapi.com](https://livetennisapi.com)
+2. Copy your API key
+3. Set `LIVETENNIS_API_KEY`
+
+Leaving `LIVETENNIS_API_KEY` unset disables this source entirely — the other
+sources are unaffected. Followed players are matched to Live Tennis player IDs
+by exact name; a name that cannot be resolved is skipped rather than guessed.
+
 ### 6. Set Environment Variables
 
 ```bash
 # Export for deployment
 export TENNIS_API_KEY="your-rapidapi-key"
 export SERPAPI_KEY="your-serpapi-key"
+export LIVETENNIS_API_KEY="your-livetennis-key"  # optional
 export GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
 export GOOGLE_CLIENT_SECRET="your-client-secret"
 export FRONTEND_URL="https://storage.googleapis.com/your-project-frontend/index.html"
